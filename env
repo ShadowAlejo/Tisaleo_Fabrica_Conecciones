@@ -38,6 +38,19 @@
 # database.default.DBPrefix =
 # database.default.port = 3306
 
+# Base central: usuarios, roles, emprendimientos y permisos.
+# database.default.database = sistema_emprendimientos_tisal
+
+# Bases operativas, una por emprendimiento. Deben ser nombres de bases existentes.
+# TISALEO_DB_DON_GOYO = tisaleo_don_goyo
+# TISALEO_DB_RAZU = tisaleo_razu_corp
+# TISALEO_DB_DULCE_MORA = tisaleo_dulce_mora
+
+# Login inicial del propietario: usa estas claves en tu archivo local .env.
+# La contraseña debe tener entre 8 y 10 caracteres.
+# TISALEO_OWNER_EMAIL = propietario@example.com
+# TISALEO_OWNER_PASSWORD = clave de 8 a 10 caracteres
+
 # If you use MySQLi as tests, first update the values of Config\Database::$tests.
 # database.tests.hostname = localhost
 # database.tests.database = ci4_test

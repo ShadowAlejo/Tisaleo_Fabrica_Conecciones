@@ -22,9 +22,9 @@ use Psr\Log\LoggerInterface;
  */
 abstract class BaseController extends Controller
 {
-    protected $helpers = ['url'];
+    protected $helpers = ['form', 'tenant', 'url'];
 
-    protected string $role = 'emprendedor';
+    protected string $role = 'propietario';
 
     protected function renderPage(
         string $view,
@@ -33,12 +33,46 @@ abstract class BaseController extends Controller
         string $description = '',
         array $data = [],
     ): string {
+        $authenticatedRole = session('auth_user')['role'] ?? null;
+        $pageRole = $authenticatedRole === 'admin' || $this->role === 'admin'
+            ? 'admin'
+            : (in_array($authenticatedRole, ['propietario', 'empleado'], true) ? $authenticatedRole : $this->role);
+
         return view($view, array_merge([
-            'role' => $this->role,
+            'role' => $pageRole,
             'pageTitle' => $title,
             'activeMenu' => $activeMenu,
             'pageDescription' => $description,
         ], $data));
+    }
+
+    protected function catalogEnabled(string $catalog): bool
+    {
+        $businessId = (int) session('current_business_id');
+        foreach (session('auth_businesses') ?? [] as $business) {
+            if ((int) ($business['id'] ?? 0) === $businessId) {
+                return (bool) ($business['usa_' . $catalog] ?? false);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<string> $fields
+     */
+    protected function validatePostScalars(array $fields): bool
+    {
+        foreach ($fields as $field) {
+            $value = $this->request->getPost($field);
+            if ($value !== null && ! is_string($value)) {
+                $this->validator->setError($field, 'El valor indicado no es válido.');
+
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
