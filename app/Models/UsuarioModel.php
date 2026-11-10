@@ -14,7 +14,7 @@ class UsuarioModel extends Model
     public function findActiveByEmail(string $email): ?array
     {
         $user = $this->builder()
-            ->select('usuarios.id, usuarios.rol_id, usuarios.emprendimiento_id, usuarios.nombre, usuarios.apellido, usuarios.correo, usuarios.password_hash, usuarios.debe_cambiar_clave, roles.nombre AS rol_nombre')
+            ->select('usuarios.id, usuarios.rol_id, usuarios.emprendimiento_id, usuarios.nombre, usuarios.apellido, usuarios.correo, usuarios.usuario, usuarios.password_hash, usuarios.debe_cambiar_clave, roles.nombre AS rol_nombre')
             ->join('roles', 'roles.id = usuarios.rol_id')
             ->where('usuarios.correo', $email)
             ->where('usuarios.activo', 1)

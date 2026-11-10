@@ -144,7 +144,10 @@ class EmprendimientosController extends BaseController
 
         $post = $this->request->getPost();
         $email = mb_strtolower(trim((string) $post['correo']));
-        if (db_connect()->table('usuarios')->where('correo', $email)->where('id !=', $owner['id'])->countAllResults() > 0) {
+        if (
+            $owner['correo'] !== null
+            && db_connect()->table('usuarios')->where('correo', $email)->where('id !=', $owner['id'])->countAllResults() > 0
+        ) {
             return redirect()->back()->withInput()->with('errors', ['correo' => 'Ya existe una cuenta con ese correo.']);
         }
 
@@ -162,11 +165,14 @@ class EmprendimientosController extends BaseController
                 'direccion' => trim((string) $post['direccion']) ?: null,
                 'activo' => (int) $post['estado'],
             ]);
-            $central->table('usuarios')->where('id', (int) $owner['id'])->update([
+            $ownerData = [
                 'nombre' => $nameParts[0] ?? '',
                 'apellido' => $nameParts[1] ?? '',
-                'correo' => $email,
-            ]);
+            ];
+            if ($owner['correo'] !== null) {
+                $ownerData['correo'] = $email;
+            }
+            $central->table('usuarios')->where('id', (int) $owner['id'])->update($ownerData);
             if (! $central->transStatus()) {
                 throw new DatabaseException('No se pudo actualizar el emprendimiento y su propietario.');
             }
@@ -244,7 +250,7 @@ class EmprendimientosController extends BaseController
     private function findOwner(int $businessId): ?array
     {
         return db_connect()->table('usuarios')
-            ->select('usuarios.id, usuarios.nombre, usuarios.apellido, usuarios.correo')
+            ->select('usuarios.id, usuarios.nombre, usuarios.apellido, usuarios.correo, usuarios.usuario')
             ->join('roles', 'roles.id = usuarios.rol_id')
             ->where('usuarios.emprendimiento_id', $businessId)
             ->where('roles.nombre', 'propietario')

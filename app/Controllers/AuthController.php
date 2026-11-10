@@ -27,22 +27,22 @@ class AuthController extends BaseController
 
     public function attempt(): RedirectResponse
     {
-        $emailInput = $this->request->getPost('correo');
+        $identifierInput = $this->request->getPost('identificador');
         $passwordInput = $this->request->getPost('password');
-        if (! is_string($emailInput) || ! is_string($passwordInput)) {
+        if (! is_string($identifierInput) || ! is_string($passwordInput)) {
             return redirect()->to(site_url('login'))->with('auth_error', 'Ingresa un correo y una contraseña válidos.');
         }
 
-        $email = mb_strtolower(trim($emailInput));
+        $identifier = mb_strtolower(trim($identifierInput));
         $password = $passwordInput;
 
-        if (! filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190 || $password === '' || strlen($password) > 72) {
+        if (! filter_var($identifier, FILTER_VALIDATE_EMAIL) || strlen($identifier) > 254 || $password === '' || strlen($password) > 72) {
             return redirect()->to(site_url('login'))->with('auth_error', 'Ingresa un correo y una contraseña válidos.');
         }
 
         $users = new UsuarioModel();
         try {
-            $user = $users->findActiveByEmail($email);
+            $user = $users->findActiveByEmail($identifier);
         } catch (DatabaseException $exception) {
             log_message('error', 'No se pudo consultar la base central durante el inicio de sesión: {message}', ['message' => $exception->getMessage()]);
 
@@ -72,7 +72,7 @@ class AuthController extends BaseController
             return redirect()->to(site_url('login'))->with('auth_error', 'La cuenta no tiene un emprendimiento activo asociado.');
         }
 
-        if ($businesses !== []) {
+        if ($role !== 'admin' && $businesses !== []) {
             $tenantDatabase = new TenantDatabase();
             try {
                 foreach ($businesses as $business) {
@@ -82,7 +82,7 @@ class AuthController extends BaseController
 
                     $tenantDatabase->verifyConnection($business['tenant_key']);
                 }
-            } catch (RuntimeException $exception) {
+            } catch (DatabaseException|RuntimeException $exception) {
                 log_message('error', 'No se pudo verificar la base operativa al iniciar sesión: {message}', ['message' => $exception->getMessage()]);
 
                 return redirect()->to(site_url('login'))->with('auth_error', 'No se pudo conectar con la base del emprendimiento. Verifica su configuración e inténtalo de nuevo.');
@@ -97,18 +97,23 @@ class AuthController extends BaseController
             return redirect()->to(site_url('login'))->with('auth_error', 'No se pudo completar el acceso. Verifica la conexión con la base central.');
         }
 
-        usort($businesses, static function (array $left, array $right): int {
-            $priority = ['don_goyo' => 0, 'razu' => 1, 'dulce_mora' => 2];
+        if ($role === 'admin') {
+            usort($businesses, static fn (array $left, array $right): int => strcasecmp($left['nombre'], $right['nombre']));
+        } else {
+            usort($businesses, static function (array $left, array $right): int {
+                $priority = ['don_goyo' => 0, 'razu' => 1, 'dulce_mora' => 2];
 
-            return ($priority[$left['tenant_key'] ?? ''] ?? 3) <=> ($priority[$right['tenant_key'] ?? ''] ?? 3);
-        });
+                return ($priority[$left['tenant_key'] ?? ''] ?? 3) <=> ($priority[$right['tenant_key'] ?? ''] ?? 3);
+            });
+        }
 
         session()->regenerate(true);
         session()->set([
             'auth_user' => [
                 'id' => (int) $user['id'],
-                'name' => trim($user['nombre'] . ' ' . ($user['apellido'] ?? '')),
+                'name' => trim(($user['nombre'] ?? '') . ' ' . ($user['apellido'] ?? '')) ?: $user['usuario'],
                 'email' => $user['correo'],
+                'username' => $user['usuario'],
                 'role' => $role,
                 'must_change_password' => (bool) ($user['debe_cambiar_clave'] ?? false),
             ],
@@ -158,7 +163,7 @@ class AuthController extends BaseController
 
         try {
             (new TenantDatabase())->verifyConnection($business['tenant_key']);
-        } catch (RuntimeException $exception) {
+        } catch (DatabaseException|RuntimeException $exception) {
             log_message('error', 'No se pudo cambiar a la base operativa seleccionada: {message}', ['message' => $exception->getMessage()]);
 
             return redirect()->back()->with('auth_error', 'No se pudo conectar con la base de ese emprendimiento.');

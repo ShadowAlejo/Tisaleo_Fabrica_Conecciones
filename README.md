@@ -62,34 +62,32 @@ Additionally, make sure that the following extensions are enabled in your PHP:
 
 ## Acceso y bases por emprendimiento
 
-Separa la autenticación y los datos operativos:
+La autenticación vive en la base central `usuarios_tisaleo`. Los 26 emprendimientos tienen cada uno una base operativa independiente en el mismo servidor MySQL; la columna `emprendimientos.database_key` identifica una base permitida. Las cuentas de la hoja de usuarios inician sesión con usuario y contraseña, tienen rol `propietario` y deben cambiar la contraseña al primer acceso.
 
-- `sistema_emprendimientos_tisal`: base central con `roles`, `usuarios`, `emprendimientos` y sus permisos. Cada emprendimiento guarda su categoría directamente en `emprendimientos.categoria` (`VARCHAR(100)`); `database_key` identifica la conexión operativa.
-- `tisaleo_don_goyo`: datos operativos de Turrones Don Goyo.
-- `tisaleo_razu_corp`: datos operativos de RaZu.
-- `tisaleo_dulce_mora`: datos operativos de Bodega G&A "Dulce Mora".
+### Instalación y conexión en el host
 
-Preparación en Laragon/MySQL:
+1. Crea la base central `usuarios_tisaleo` y, para una instalación nueva, importa [`database/usuarios_tisaleo.sql`](./database/usuarios_tisaleo.sql). Luego importa [`database/inserciones.sql`](./database/inserciones.sql) para registrar los roles y los 26 emprendimientos. No vuelvas a importar el esquema sobre una base que ya tenga datos: el script elimina y recrea tablas.
+2. Solo para una instalación nueva, importa [`database/emprendimientos_tisal.sql`](./database/emprendimientos_tisal.sql) con una cuenta MySQL que pueda crear bases. El script crea las 26 bases `db_emp_*` y elimina/recrea las tablas si ya existen: **no lo ejecutes sobre bases con datos que quieras conservar**. Cada base debe tener el esquema de negocio esperado (productos, servicios, ventas, detalles, movimientos e imágenes).
+3. En el host, copia `env` a `.env` y configura `database.default.hostname`, `database.default.database = usuarios_tisaleo`, `database.default.username`, `database.default.password` y `database.default.port` con la conexión central del proveedor.
+4. En el `.env` privado del host define `TISALEO_DB_USER_<SUFIJO>` y `TISALEO_DB_PASSWORD_<SUFIJO>` para cada negocio, usando el usuario MySQL propio de cada base. Los sufijos y nombres de variable están listados en [`env`](./env). El host y puerto de conexión son compartidos desde `database.default`; `TISALEO_DB_ACCOUNT_HOST` indica el host de las cuentas MySQL y por defecto es `localhost`. La aplicación fija los nombres permitidos y no acepta nombres de base enviados desde formularios. No pongas estas claves en Git, tickets ni chats.
+5. Si faltan bases operativas, ejecuta `php spark tenants:create-missing-schemas`. El comando crea las bases y tablas faltantes con `IF NOT EXISTS`; no elimina tablas ni datos. Luego ejecuta desde la carpeta del proyecto:
 
-1. Para una instalación nueva, importa `database/sistema_emprendimientos_tisal.sql` en `sistema_emprendimientos_tisal`. Esa base es la única que usa el login para consultar usuarios y permisos. El SQL crea los tres emprendimientos, el administrador y las cuentas de propietario y empleado de cada uno. Si la base ya existía, importa solo `database/crear_administrador.sql` para crear el administrador sin modificar los demás datos. Para actualizar una base existente que todavía usa `categoria_id`, respalda la base e importa una vez `database/migrar_categoria_emprendimientos.sql` en phpMyAdmin; el script conserva los nombres actuales. En instalaciones antiguas importadas desde SQL, importa también una vez `database/agregar_descripcion_emprendimientos.sql`. En instalaciones administradas por migraciones, `php spark migrate` aplica los cambios.
-2. Crea `tisaleo_don_goyo`, `tisaleo_razu_corp` y `tisaleo_dulce_mora`, con cotejamiento `utf8mb4_unicode_ci`.
-3. Selecciona cada base operativa en phpMyAdmin e importa `database/tenant_schema.sql`. El archivo no cambia de base por sí solo: importa el mismo esquema, por separado, en cada base seleccionada. Los `usuario_id` apuntan a IDs de la base central y no usan claves foráneas entre bases.
-4. Copia `env` como `.env`. Configura `database.default.hostname`, `database.default.database = sistema_emprendimientos_tisal`, `database.default.username`, `database.default.password` y `database.default.port`. Define también `TISALEO_DB_DON_GOYO=tisaleo_don_goyo`, `TISALEO_DB_RAZU=tisaleo_razu_corp` y `TISALEO_DB_DULCE_MORA=tisaleo_dulce_mora`. Los tres grupos operativos usan las mismas credenciales MySQL que la base central.
-5. Define `TISALEO_OWNER_EMAIL` y `TISALEO_OWNER_PASSWORD` (de 8 a 10 caracteres) en `.env`; estas variables corresponden al administrador global. No compartas ni subas ese archivo.
-6. Si la base central existente se administra con migraciones, ejecuta `php spark migrate`. Si la creaste importando el SQL anterior, no lo ejecutes sobre esa base. Ejecuta `php spark db:seed AdminSeeder` y `php spark db:seed PropietariosSeeder`; este último crea o vincula los tres emprendimientos y sus propietarios. Luego ejecuta `php spark tenants:migrate` y `php spark db:seed CuentasEmpleadosSeeder`. Las cuentas iniciales de propietario y empleado también deben cambiar su contraseña al primer acceso. En una base que ya tenía esas cuentas, vuelve a ejecutar ambos seeders: marcarán el cambio obligatorio solo si la contraseña todavía coincide con la configurada en `.env`.
+   ```sh
+   php spark migrate
+   php spark db:seed AdminSeeder
+   php spark tenants:create-missing-schemas
+   php spark tenants:provision-users
+   php spark tenants:migrate
+   ```
 
-`PropietariosSeeder` crea o vincula los tres emprendimientos y asigna cada cuenta propietaria únicamente a su negocio. El login valida la contraseña contra la base central, y el selector activa la conexión correspondiente a la base operativa. Para futuras consultas y escrituras de negocio, usa `tenant_db()`; no uses la conexión central predeterminada para productos, servicios o ventas. Los catálogos, el punto de venta, el perfil del negocio y el equipo usan conexiones y permisos del negocio activo. Las ventas descuentan inventario dentro de una transacción y guardan sus movimientos de inventario. `tenants:migrate` actualiza las tres bases operativas de forma aditiva.
+   `tenants:create-missing-schemas` y `tenants:provision-users` requieren que la cuenta central tenga permisos para crear bases/tablas y usuarios MySQL, respectivamente. El segundo crea usuarios faltantes y concede permisos de lectura, escritura y cambios de esquema solo sobre la base de cada negocio; no cambia la contraseña de un usuario MySQL que ya exista. Si un usuario existente tiene otra contraseña, sincronízala desde el panel MySQL con el valor privado de `.env`. Configura `TISALEO_OWNER_EMAIL` y `TISALEO_OWNER_PASSWORD` (8 a 10 caracteres) en el `.env` para crear al administrador global. El administrador guarda `usuario = Administrador`, nombre y apellido vacíos, y usa `TISALEO_OWNER_EMAIL` para iniciar sesión. Si ya existe, vuelve a ejecutar `php spark db:seed AdminSeeder` para sincronizar esos campos sin cambiar su contraseña. `tenants:migrate` actualiza de forma aditiva las bases operativas asignadas en la central.
 
-El sistema usa tres roles: `admin` accede a todos los emprendimientos y al resumen/directorio administrativo; `propietario` solo al emprendimiento asignado y puede administrar su equipo; `empleado` solo a su emprendimiento y no puede acceder al apartado de empleados. El administrador puede cambiar entre emprendimientos desde el selector superior.
+6. Prepara un CSV UTF-8 con las columnas `Nombre del Emprendimiento`, `Usuario`, `Contraseña` y `Correos`. `Usuario` se guarda en `usuarios.usuario`, `Correos` en `usuarios.correo`, y el campo `nombre` de usuario queda vacío. No incluyas `Usuario_bd` ni `Contrasenia_bd`. Sube el archivo temporal al host por un canal privado, fuera de `public/`, y ejecuta:
 
-Para asociar una imagen WebP ya copiada en `public/uploads/productos/` a un producto existente, ejecuta `php spark tenant:image-product razu "Vino artesanal RAZU" uploads/productos/vino.webp`. El comando comprueba el tenant autorizado, el producto, la ruta pública y el tipo de archivo antes de guardar la asociación en `imagenes`.
+   ```sh
+   php spark users:import-emprendimientos /ruta/privada/usuarios.csv
+   ```
 
-Al crear empleados desde el panel, el sistema genera una contraseña temporal aleatoria y la muestra una sola vez; la cuenta debe cambiarla en el primer acceso. El alta de negocios desde administración solo está disponible mientras exista una base operativa preconfigurada y todavía no asignada.
+   El comando valida que cada emprendimiento y correo existan, guarda hashes de contraseña (nunca texto plano) y crea los propietarios de forma transaccional. Si se ejecuta otra vez, actualiza el correo y conserva las contraseñas de las cuentas existentes. El inicio de sesión usa el correo de `Correos` y la contraseña. Elimina el CSV temporal del host después de la importación. Las contraseñas iniciales se cambian al primer acceso.
 
-Para cambiar posteriormente la clave del administrador, edita `TISALEO_OWNER_PASSWORD` en `.env` con una clave nueva (8 a 10 caracteres) y ejecuta `php spark db:seed ActualizarClaveAdminSeeder`. Este seeder cambia el hash de la cuenta activa indicada por `TISALEO_OWNER_EMAIL`; no crea usuarios. Mantén `.env` privado.
-
-Para crear un propietario independiente por negocio, configura `TISALEO_OWNER_DON_GOYO_EMAIL`/`PASSWORD`, `TISALEO_OWNER_RAZU_EMAIL`/`PASSWORD` y `TISALEO_OWNER_DULCE_MORA_EMAIL`/`PASSWORD` en `.env` (contraseñas de 8 a 10 caracteres). Ejecuta `php spark db:seed PropietariosSeeder`. Cada propietario queda asociado únicamente a su emprendimiento; las cuentas ya existentes conservan su contraseña.
-
-Para crear una cuenta de empleado distinta para cada negocio, configura `TISALEO_STAFF_DON_GOYO_PASSWORD`, `TISALEO_STAFF_RAZU_PASSWORD` y `TISALEO_STAFF_DULCE_MORA_PASSWORD` en `.env` (8 a 10 caracteres cada una). Los correos locales por defecto son `empleado.dongoyo@tisaleo.local`, `empleado.razu@tisaleo.local` y `empleado.dulcemora@tisaleo.local`; puedes sobreescribirlos con las variables `TISALEO_STAFF_*_EMAIL`. Ejecuta `php spark db:seed CuentasEmpleadosSeeder`. Cada cuenta queda asignada solo a su negocio y las cuentas ya existentes no cambian de contraseña. El empleado inicia en el mismo panel y ve los mismos módulos de su negocio que el propietario; su sesión solo contiene el negocio que tiene asignado.
-
-Al añadir emprendimientos, agrega una clave fija en `App\Libraries\TenantDatabase`, una variable de entorno para su base y la asociación desde la base central. Nunca recibas nombres de bases de datos del formulario.
+Para desarrollo adicional, las consultas de productos, servicios y ventas deben usar `tenant_db()`; no la conexión central predeterminada. El rol `admin` puede acceder a todos los emprendimientos, `propietario` solo al suyo y `empleado` tiene acceso operativo limitado. Las nuevas claves de usuario aceptan entre 8 y 72 caracteres.

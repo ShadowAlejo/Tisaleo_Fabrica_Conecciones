@@ -29,8 +29,8 @@ class CuentaController extends BaseController
         $confirmation = $this->request->getPost('password_confirm');
         $errors = [];
 
-        if (! is_string($password) || mb_strlen($password) < 8 || mb_strlen($password) > 10) {
-            $errors['password'] = 'La contraseña debe tener entre 8 y 10 caracteres.';
+        if (! is_string($password) || strlen($password) < 8 || strlen($password) > 72) {
+            $errors['password'] = 'La contraseña debe tener entre 8 y 72 caracteres.';
         }
         if (! is_string($confirmation) || $password !== $confirmation) {
             $errors['password_confirm'] = 'Las contraseñas no coinciden.';
