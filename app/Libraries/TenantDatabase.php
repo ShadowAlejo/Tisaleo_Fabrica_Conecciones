@@ -7,10 +7,39 @@ use RuntimeException;
 
 class TenantDatabase
 {
-    private const DATABASE_ENVIRONMENT_KEYS = [
+    private const SHARED_DATABASE_ENVIRONMENT_KEYS = [
         'don_goyo' => 'TISALEO_DB_DON_GOYO',
         'razu' => 'TISALEO_DB_RAZU',
         'dulce_mora' => 'TISALEO_DB_DULCE_MORA',
+    ];
+
+    private const TENANT_ENVIRONMENT_SUFFIXES = [
+        'db_emp_calzado_john' => 'CALZADO_JOHN',
+        'db_emp_alju' => 'ALJU',
+        'db_emp_lufeli' => 'LUFELI',
+        'db_emp_helados_golositos' => 'HELADOS_GOLOSITOS',
+        'db_emp_heladeria_karito' => 'HELADERIA_KARITO',
+        'db_emp_conos_kelvin' => 'CONOS_KELVIN',
+        'db_emp_turrones_don_goyo' => 'TURRONES_DON_GOYO',
+        'db_emp_razu_corp' => 'RAZU_CORP',
+        'db_emp_bodega_ga' => 'BODEGA_GA_DULCE_MORA',
+        'db_emp_sirackagro' => 'SIRACKAGRO_INDUSTRIA',
+        'db_emp_vinos_san_juan' => 'VINOS_SAN_JUAN',
+        'db_emp_sachaluna' => 'SACHALUNA',
+        'db_emp_granja_ainhoa' => 'GRANJA_AINHOA',
+        'db_emp_vinos_la_florida' => 'VINOS_LA_FLORIDA',
+        'db_emp_vinos_mm' => 'VINOS_MM',
+        'db_emp_barros_nicole' => 'BARROS_NICOLE',
+        'db_emp_vinos_mopocita' => 'VINOS_MOPOCITA',
+        'db_emp_vinos_don_bolo' => 'VINOS_MIEL_DON_BOLO',
+        'db_emp_granja_san_jose' => 'GRANJA_ECOLOGICA_SAN_JOSE',
+        'db_emp_museo_santa_lucia' => 'MUSEO_SANTA_LUCIA',
+        'db_emp_granja_san_martin' => 'GRANJA_SAN_MARTIN',
+        'db_emp_la_guadalupana' => 'QUINTA_LA_GUADALUPANA',
+        'db_emp_san_miguel' => 'SAN_MIGUEL',
+        'db_emp_union_hermandad' => 'ASOC_UNION_Y_HERMANDAD',
+        'db_emp_asoc_quinchicoto' => 'ASOC_AGROPECUARIA_QUINCHICOTO',
+        'db_emp_union_tisalena' => 'ASOC_UNION_TISALENA',
     ];
 
     /**
@@ -18,28 +47,64 @@ class TenantDatabase
      */
     public function allowedKeys(): array
     {
-        return array_keys(self::DATABASE_ENVIRONMENT_KEYS);
+        return array_merge(
+            array_keys(self::SHARED_DATABASE_ENVIRONMENT_KEYS),
+            array_keys(self::TENANT_ENVIRONMENT_SUFFIXES),
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function tenantKeys(): array
+    {
+        return array_keys(self::TENANT_ENVIRONMENT_SUFFIXES);
+    }
+
+    /**
+     * @return array{username: string, password: string}
+     */
+    public function credentialsForKey(string $tenantKey): array
+    {
+        if (! isset(self::TENANT_ENVIRONMENT_SUFFIXES[$tenantKey])) {
+            throw new RuntimeException('El emprendimiento no tiene credenciales MySQL autorizadas.');
+        }
+
+        $suffix = self::TENANT_ENVIRONMENT_SUFFIXES[$tenantKey];
+        $username = trim((string) env('TISALEO_DB_USER_' . $suffix, ''));
+        $password = (string) env('TISALEO_DB_PASSWORD_' . $suffix, '');
+
+        if (! preg_match('/\A[a-zA-Z0-9_]{1,32}\z/', $username) || $password === '') {
+            throw new RuntimeException('Faltan credenciales MySQL válidas para el emprendimiento: ' . $tenantKey);
+        }
+
+        return ['username' => $username, 'password' => $password];
     }
 
     public function connectionForKey(string $tenantKey): BaseConnection
     {
-        $environmentKey = self::DATABASE_ENVIRONMENT_KEYS[$tenantKey] ?? null;
-        if ($environmentKey === null) {
+        $database = config('Database')->default;
+        if (isset(self::SHARED_DATABASE_ENVIRONMENT_KEYS[$tenantKey])) {
+            $databaseName = trim((string) env(self::SHARED_DATABASE_ENVIRONMENT_KEYS[$tenantKey], ''));
+        } elseif (isset(self::TENANT_ENVIRONMENT_SUFFIXES[$tenantKey])) {
+            $credentials = $this->credentialsForKey($tenantKey);
+            $database['username'] = $credentials['username'];
+            $database['password'] = $credentials['password'];
+            $databaseName = $tenantKey;
+        } else {
             throw new RuntimeException('El emprendimiento no tiene una conexión de base de datos autorizada.');
         }
 
-        $databaseName = trim((string) env($environmentKey, ''));
         if (! preg_match('/\A[a-zA-Z0-9_]{1,64}\z/', $databaseName)) {
-            throw new RuntimeException('Falta configurar el nombre de la base de datos para el emprendimiento.');
+            throw new RuntimeException('Falta configurar un nombre de base de datos válido para el emprendimiento.');
         }
 
-        $database = config('Database')->default;
         $centralDatabaseName = trim((string) ($database['database'] ?? ''));
         if ($centralDatabaseName === '' || strcasecmp($databaseName, $centralDatabaseName) === 0) {
             throw new RuntimeException('La base operativa debe ser distinta de la base central de usuarios.');
         }
 
-        foreach (self::DATABASE_ENVIRONMENT_KEYS as $key => $environmentKey) {
+        foreach (self::SHARED_DATABASE_ENVIRONMENT_KEYS as $key => $environmentKey) {
             if ($key === $tenantKey) {
                 continue;
             }
@@ -50,8 +115,13 @@ class TenantDatabase
             }
         }
 
-        $database['database'] = $databaseName;
+        foreach (self::TENANT_ENVIRONMENT_SUFFIXES as $key => $_suffix) {
+            if ($key !== $tenantKey && strcasecmp($databaseName, $key) === 0) {
+                throw new RuntimeException('Cada emprendimiento debe tener una base operativa distinta.');
+            }
+        }
 
+        $database['database'] = $databaseName;
         return db_connect($database, false);
     }
 

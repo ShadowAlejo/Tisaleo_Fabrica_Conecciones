@@ -16,6 +16,9 @@ class AdminSeeder extends Seeder
         if (! filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($password) < 8 || mb_strlen($password) > 10) {
             throw new RuntimeException('Configura TISALEO_OWNER_EMAIL y una TISALEO_OWNER_PASSWORD de 8 a 10 caracteres en .env.');
         }
+        if (! $this->db->fieldExists('usuario', 'usuarios') || ! $this->db->fieldExists('nombre', 'usuarios')) {
+            throw new RuntimeException('Ejecuta php spark migrate antes de crear o actualizar la cuenta administrativa.');
+        }
 
         $this->db->transBegin();
 
@@ -28,7 +31,7 @@ class AdminSeeder extends Seeder
             }
 
             $this->db->transCommit();
-            CLI::write('Se procesó la cuenta administrativa. La contraseña existente se conservó.', 'green');
+            CLI::write('Se procesó la cuenta Administrador. La contraseña existente se conservó.', 'green');
         } catch (\Throwable $exception) {
             $this->db->transRollback();
             throw $exception;
@@ -59,17 +62,36 @@ class AdminSeeder extends Seeder
                 throw new RuntimeException('El correo configurado ya existe y no corresponde a una cuenta administrativa activa.');
             }
 
-            $this->db->table('usuarios')->where('id', $existing['id'])->update(['emprendimiento_id' => null]);
+            $usernameOwner = $this->db->table('usuarios')
+                ->where('usuario', 'Administrador')
+                ->where('id !=', $existing['id'])
+                ->get()
+                ->getRowArray();
+            if ($usernameOwner !== null) {
+                throw new RuntimeException('El usuario Administrador ya está asignado a otra cuenta.');
+            }
+
+            $this->db->table('usuarios')->where('id', $existing['id'])->update([
+                'emprendimiento_id' => null,
+                'nombre' => null,
+                'apellido' => null,
+                'usuario' => 'Administrador',
+            ]);
             $this->db->table('usuario_emprendimientos')->where('usuario_id', $existing['id'])->delete();
 
             return;
         }
 
+        if ($this->db->table('usuarios')->where('usuario', 'Administrador')->countAllResults() > 0) {
+            throw new RuntimeException('El usuario Administrador ya está asignado a otra cuenta.');
+        }
+
         $this->db->table('usuarios')->insert([
             'rol_id' => $roleId,
             'emprendimiento_id' => null,
-            'nombre' => 'Administrador',
-            'apellido' => 'Tisaleo',
+            'nombre' => null,
+            'apellido' => null,
+            'usuario' => 'Administrador',
             'correo' => $email,
             'password_hash' => password_hash($password, PASSWORD_DEFAULT),
             'debe_cambiar_clave' => 1,

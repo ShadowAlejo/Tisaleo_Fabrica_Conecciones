@@ -17,7 +17,7 @@
         <div class="login-heading">
             <div class="eyebrow">Acceso al sistema</div>
             <h1>Bienvenido</h1>
-            <p>Ingresa con tu correo y contraseña para administrar tus emprendimientos.</p>
+            <p>Ingresa con tu correo y contraseña para administrar tu emprendimiento.</p>
         </div>
         <?php if (! empty($error)): ?>
             <div class="alert alert-danger" role="alert"><?= esc($error) ?></div>
@@ -25,8 +25,8 @@
         <form method="post" action="<?= site_url('login') ?>">
             <?= csrf_field() ?>
             <div class="mb-3">
-                <label for="correo" class="form-label">Correo electrónico</label>
-                <input type="email" class="form-control" id="correo" name="correo" placeholder="nombre@ejemplo.com" data-example="nombre@ejemplo.com" maxlength="190" autocomplete="username" required>
+                <label for="identificador" class="form-label">Correo electrónico</label>
+                <input type="email" class="form-control" id="identificador" name="identificador" placeholder="nombre@ejemplo.com" data-example="nombre@ejemplo.com" maxlength="254" autocomplete="username" required>
             </div>
             <div class="mb-4">
                 <label for="password" class="form-label">Contraseña</label>

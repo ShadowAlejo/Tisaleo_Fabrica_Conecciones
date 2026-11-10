@@ -38,18 +38,75 @@
 # database.default.DBPrefix =
 # database.default.port = 3306
 
-# Base central: usuarios, roles, emprendimientos y permisos.
-# database.default.database = sistema_emprendimientos_tisal
+# Base central: usuarios, roles y emprendimientos.
+# database.default.database = usuarios_tisaleo
+# Host del servidor MySQL que recibe las conexiones de la aplicación.
+# TISALEO_DB_ACCOUNT_HOST = localhost
 
-# Bases operativas, una por emprendimiento. Deben ser nombres de bases existentes.
+# Configuración heredada para instalaciones de tres emprendimientos.
 # TISALEO_DB_DON_GOYO = tisaleo_don_goyo
 # TISALEO_DB_RAZU = tisaleo_razu_corp
 # TISALEO_DB_DULCE_MORA = tisaleo_dulce_mora
 
-# Login inicial del propietario: usa estas claves en tu archivo local .env.
-# La contraseña debe tener entre 8 y 10 caracteres.
-# TISALEO_OWNER_EMAIL = propietario@example.com
-# TISALEO_OWNER_PASSWORD = clave de 8 a 10 caracteres
+# Cada base operativa usa su propio usuario MySQL. El nombre de la base se fija
+# en la aplicación según database_key; hostname y puerto se toman de database.default.
+# Define USER y PASSWORD para cada uno de los 26 emprendimientos:
+# TISALEO_DB_USER_CALZADO_JOHN =
+# TISALEO_DB_PASSWORD_CALZADO_JOHN =
+# TISALEO_DB_USER_ALJU =
+# TISALEO_DB_PASSWORD_ALJU =
+# TISALEO_DB_USER_LUFELI =
+# TISALEO_DB_PASSWORD_LUFELI =
+# TISALEO_DB_USER_HELADOS_GOLOSITOS =
+# TISALEO_DB_PASSWORD_HELADOS_GOLOSITOS =
+# TISALEO_DB_USER_HELADERIA_KARITO =
+# TISALEO_DB_PASSWORD_HELADERIA_KARITO =
+# TISALEO_DB_USER_CONOS_KELVIN =
+# TISALEO_DB_PASSWORD_CONOS_KELVIN =
+# TISALEO_DB_USER_TURRONES_DON_GOYO =
+# TISALEO_DB_PASSWORD_TURRONES_DON_GOYO =
+# TISALEO_DB_USER_RAZU_CORP =
+# TISALEO_DB_PASSWORD_RAZU_CORP =
+# TISALEO_DB_USER_BODEGA_GA_DULCE_MORA =
+# TISALEO_DB_PASSWORD_BODEGA_GA_DULCE_MORA =
+# TISALEO_DB_USER_SIRACKAGRO_INDUSTRIA =
+# TISALEO_DB_PASSWORD_SIRACKAGRO_INDUSTRIA =
+# TISALEO_DB_USER_VINOS_SAN_JUAN =
+# TISALEO_DB_PASSWORD_VINOS_SAN_JUAN =
+# TISALEO_DB_USER_SACHALUNA =
+# TISALEO_DB_PASSWORD_SACHALUNA =
+# TISALEO_DB_USER_GRANJA_AINHOA =
+# TISALEO_DB_PASSWORD_GRANJA_AINHOA =
+# TISALEO_DB_USER_VINOS_LA_FLORIDA =
+# TISALEO_DB_PASSWORD_VINOS_LA_FLORIDA =
+# TISALEO_DB_USER_VINOS_MM =
+# TISALEO_DB_PASSWORD_VINOS_MM =
+# TISALEO_DB_USER_BARROS_NICOLE =
+# TISALEO_DB_PASSWORD_BARROS_NICOLE =
+# TISALEO_DB_USER_VINOS_MOPOCITA =
+# TISALEO_DB_PASSWORD_VINOS_MOPOCITA =
+# TISALEO_DB_USER_VINOS_MIEL_DON_BOLO =
+# TISALEO_DB_PASSWORD_VINOS_MIEL_DON_BOLO =
+# TISALEO_DB_USER_GRANJA_ECOLOGICA_SAN_JOSE =
+# TISALEO_DB_PASSWORD_GRANJA_ECOLOGICA_SAN_JOSE =
+# TISALEO_DB_USER_MUSEO_SANTA_LUCIA =
+# TISALEO_DB_PASSWORD_MUSEO_SANTA_LUCIA =
+# TISALEO_DB_USER_GRANJA_SAN_MARTIN =
+# TISALEO_DB_PASSWORD_GRANJA_SAN_MARTIN =
+# TISALEO_DB_USER_QUINTA_LA_GUADALUPANA =
+# TISALEO_DB_PASSWORD_QUINTA_LA_GUADALUPANA =
+# TISALEO_DB_USER_SAN_MIGUEL =
+# TISALEO_DB_PASSWORD_SAN_MIGUEL =
+# TISALEO_DB_USER_ASOC_UNION_Y_HERMANDAD =
+# TISALEO_DB_PASSWORD_ASOC_UNION_Y_HERMANDAD =
+# TISALEO_DB_USER_ASOC_AGROPECUARIA_QUINCHICOTO =
+# TISALEO_DB_PASSWORD_ASOC_AGROPECUARIA_QUINCHICOTO =
+# TISALEO_DB_USER_ASOC_UNION_TISALENA =
+# TISALEO_DB_PASSWORD_ASOC_UNION_TISALENA =
+
+# Correo y clave iniciales del administrador global (contraseña de 8 a 10 caracteres).
+# TISALEO_OWNER_EMAIL = admin@example.com
+# TISALEO_OWNER_PASSWORD = contraseña segura
 
 # If you use MySQLi as tests, first update the values of Config\Database::$tests.
 # database.tests.hostname = localhost

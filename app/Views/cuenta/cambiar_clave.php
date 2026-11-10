@@ -18,10 +18,10 @@
         <form method="post" action="<?= site_url('cuenta/cambiar-clave') ?>">
             <?= csrf_field() ?>
             <label class="form-label" for="password">Nueva contraseña</label>
-            <input class="form-control mb-2" id="password" name="password" type="password" minlength="8" maxlength="10" required autocomplete="new-password">
+            <input class="form-control mb-2" id="password" name="password" type="password" minlength="8" maxlength="72" required autocomplete="new-password">
             <?php if (isset($errors['password'])): ?><div class="text-danger small mb-2"><?= esc($errors['password']) ?></div><?php endif ?>
             <label class="form-label" for="password_confirm">Confirma la contraseña</label>
-            <input class="form-control mb-2" id="password_confirm" name="password_confirm" type="password" minlength="8" maxlength="10" required autocomplete="new-password">
+            <input class="form-control mb-2" id="password_confirm" name="password_confirm" type="password" minlength="8" maxlength="72" required autocomplete="new-password">
             <?php if (isset($errors['password_confirm'])): ?><div class="text-danger small mb-2"><?= esc($errors['password_confirm']) ?></div><?php endif ?>
             <button class="btn btn-success mt-3" type="submit">Guardar contraseña</button>
         </form>
