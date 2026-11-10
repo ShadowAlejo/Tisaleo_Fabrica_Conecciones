@@ -71,17 +71,9 @@ VALUES
  'vinos_san_juan@tisaleoemprende.ec',
  'db_emp_vinos_san_juan', 1),
 
-('Agricultura', 'SachaLuna',
- 'sachaluna@tisaleoemprende.ec',
- 'db_emp_sachaluna', 1),
-
 ('Agricultura', 'Granja Ainhoa',
  'granja_ainhoa@tisaleoemprende.ec',
  'db_emp_granja_ainhoa', 1),
-
-('Agricultura', 'Vinos La Florida',
- 'vinos_la_florida@tisaleoemprende.ec',
- 'db_emp_vinos_la_florida', 1),
 
 ('Agricultura', 'Vinos M&M',
  'vinos_mm@tisaleoemprende.ec',
@@ -110,10 +102,6 @@ VALUES
 ('Turístico', 'Granja San Martin',
  'granja_san_martin@tisaleoemprende.ec',
  'db_emp_granja_san_martin', 1),
-
-('Turístico', 'Quinta "La Guadalupana"',
- 'quinta_la_guadalupana@tisaleoemprende.ec',
- 'db_emp_la_guadalupana', 1),
 
 ('Agropecuarios', 'San Miguel',
  'san_miguel@tisaleoemprende.ec',
