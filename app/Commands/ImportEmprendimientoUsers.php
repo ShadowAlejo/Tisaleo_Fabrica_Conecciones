@@ -15,7 +15,7 @@ class ImportEmprendimientoUsers extends BaseCommand
     protected $description = 'Imports business owner accounts and their login emails from a UTF-8 CSV file.';
     protected $usage = 'users:import-emprendimientos <csv-path>';
     protected $arguments = [
-        'csv-path' => 'CSV with Nombre del Emprendimiento, Usuario, Contraseña, and Correos columns.',
+        'csv-path' => 'CSV con Nombre del Emprendimiento, Usuario, Contraseña, y opcionalmente Usuario_bd, Contrasenia_bd, Correos.',
     ];
 
     public function run(array $params)
@@ -49,14 +49,19 @@ class ImportEmprendimientoUsers extends BaseCommand
             }
             $seenUsernames[$usernameKey] = true;
 
-            $email = mb_strtolower(trim($account['email']));
-            if (! filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 254) {
-                throw new RuntimeException('El CSV contiene un correo vacío o no válido.');
+            $rawEmail = trim($account['email']);
+            if ($rawEmail !== '') {
+                $email = mb_strtolower($rawEmail);
+                if (! filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 254) {
+                    throw new RuntimeException('El CSV contiene un correo vacío o no válido.');
+                }
+                if (isset($seenEmails[$email])) {
+                    throw new RuntimeException('El CSV contiene correos duplicados.');
+                }
+                $seenEmails[$email] = true;
+            } else {
+                $email = mb_strtolower($username) . '@tisaleoemprende.ec';
             }
-            if (isset($seenEmails[$email])) {
-                throw new RuntimeException('El CSV contiene correos duplicados.');
-            }
-            $seenEmails[$email] = true;
 
             if (strlen($account['password']) < 8 || strlen($account['password']) > 72) {
                 throw new RuntimeException('Todas las contraseñas deben tener entre 8 y 72 bytes.');
@@ -83,6 +88,8 @@ class ImportEmprendimientoUsers extends BaseCommand
                 'username' => $username,
                 'email' => $email,
                 'password' => $account['password'],
+                'db_user' => $account['db_user'] ?? '',
+                'db_password' => $account['db_password'] ?? '',
             ];
         }
 
@@ -124,27 +131,56 @@ class ImportEmprendimientoUsers extends BaseCommand
                     $this->db->table('usuarios')
                         ->where('id', $existing['id'])
                         ->update([
-                            'nombre' => null,
+                            'nombre'   => null,
                             'apellido' => null,
-                            'usuario' => $owner['username'],
-                            'correo' => $owner['email'],
+                            'usuario'  => $owner['username'],
+                            'correo'   => $owner['email'],
                         ]);
+
+                    if ($this->db->fieldExists('usuario_bd', 'emprendimientos') && ($owner['db_user'] !== '' || $owner['db_password'] !== '')) {
+                        $updateBusiness = [];
+                        if ($owner['db_user'] !== '') {
+                            $updateBusiness['usuario_bd'] = $owner['db_user'];
+                        }
+                        if ($owner['db_password'] !== '') {
+                            $updateBusiness['contrasenia_bd'] = $owner['db_password'];
+                        }
+                        $this->db->table('emprendimientos')
+                            ->where('id', $owner['business_id'])
+                            ->update($updateBusiness);
+                    }
+
                     $skipped++;
                     continue;
                 }
 
-                $this->db->table('usuarios')->insert([
-                    'rol_id' => $roleId,
-                    'emprendimiento_id' => $owner['business_id'],
-                    'nombre' => null,
-                    'apellido' => null,
-                    'usuario' => $owner['username'],
-                    'correo' => $owner['email'],
-                    'password_hash' => password_hash($owner['password'], PASSWORD_DEFAULT),
+                $insertUser = [
+                    'rol_id'             => $roleId,
+                    'emprendimiento_id'  => $owner['business_id'],
+                    'nombre'             => null,
+                    'apellido'           => null,
+                    'usuario'            => $owner['username'],
+                    'correo'             => $owner['email'],
+                    'password_hash'      => password_hash($owner['password'], PASSWORD_DEFAULT),
                     'debe_cambiar_clave' => 1,
-                    'activo' => 1,
-                ]);
+                    'activo'             => 1,
+                ];
+
+                $this->db->table('usuarios')->insert($insertUser);
                 $userId = (int) $this->db->insertID();
+
+                if ($this->db->fieldExists('usuario_bd', 'emprendimientos') && ($owner['db_user'] !== '' || $owner['db_password'] !== '')) {
+                    $updateBusiness = [];
+                    if ($owner['db_user'] !== '') {
+                        $updateBusiness['usuario_bd'] = $owner['db_user'];
+                    }
+                    if ($owner['db_password'] !== '') {
+                        $updateBusiness['contrasenia_bd'] = $owner['db_password'];
+                    }
+                    $this->db->table('emprendimientos')
+                        ->where('id', $owner['business_id'])
+                        ->update($updateBusiness);
+                }
 
                 $this->db->table('usuario_emprendimientos')->insert([
                     'usuario_id' => $userId,
@@ -216,17 +252,19 @@ class ImportEmprendimientoUsers extends BaseCommand
                     $columns['password'] = $index;
                 } elseif (in_array($normalized, ['correo', 'correos', 'email', 'emailaddress', 'correoelectronico'], true)) {
                     $columns['email'] = $index;
-                } elseif (in_array($normalized, ['usuariobd', 'contraseniabd', 'contrasenabd'], true)) {
-                    throw new RuntimeException('El CSV incluye credenciales MySQL. Exporta únicamente las tres columnas de acceso a la aplicación.');
+                } elseif (in_array($normalized, ['usuariobd', 'usuario_bd', 'userbd', 'dbuser'], true)) {
+                    $columns['db_user'] = $index;
+                } elseif (in_array($normalized, ['contraseniabd', 'contrasenabd', 'contrasenia_bd', 'contrasena_bd', 'passwordbd', 'dbpassword'], true)) {
+                    $columns['db_password'] = $index;
                 } elseif ($normalized === '') {
                     $unnamedColumns[] = $index;
                 } else {
-                    throw new RuntimeException('El CSV contiene una columna no reconocida. Deja solo emprendimiento, usuario, contraseña y correo.');
+                    throw new RuntimeException('El CSV contiene una columna no reconocida: ' . $header . '. Deja solo emprendimiento, usuario, contraseña, correos y credenciales de BD.');
                 }
             }
 
-            if (count($columns) !== 4) {
-                throw new RuntimeException('El CSV debe tener las columnas Nombre del Emprendimiento, Usuario, Contraseña y Correos.');
+            if (! isset($columns['business'], $columns['username'], $columns['password'])) {
+                throw new RuntimeException('El CSV debe incluir al menos las columnas Nombre del Emprendimiento, Usuario y Contraseña.');
             }
 
             $accounts = [];
@@ -242,15 +280,18 @@ class ImportEmprendimientoUsers extends BaseCommand
                         continue;
                     }
                     if ($column !== 0 || ! ctype_digit($value) || (int) $value !== count($accounts) + 1) {
-                        throw new RuntimeException('El CSV contiene datos en una columna sin encabezado. Exporta solo nombre, usuario y contraseña.');
+                        throw new RuntimeException('El CSV contiene datos en una columna sin encabezado.');
                     }
                 }
 
                 $business = trim((string) ($row[$columns['business']] ?? ''));
                 $username = trim((string) ($row[$columns['username']] ?? ''));
                 $password = (string) ($row[$columns['password']] ?? '');
-                $email = trim((string) ($row[$columns['email']] ?? ''));
-                if ($business === '' || $username === '' || $password === '' || $email === '') {
+                $email = isset($columns['email']) ? trim((string) ($row[$columns['email']] ?? '')) : '';
+                $dbUser = isset($columns['db_user']) ? trim((string) ($row[$columns['db_user']] ?? '')) : '';
+                $dbPassword = isset($columns['db_password']) ? (string) ($row[$columns['db_password']] ?? '') : '';
+
+                if ($business === '' || $username === '' || $password === '') {
                     throw new RuntimeException('El CSV contiene una fila incompleta.');
                 }
 
@@ -259,6 +300,8 @@ class ImportEmprendimientoUsers extends BaseCommand
                     'username' => $username,
                     'password' => $password,
                     'email' => $email,
+                    'db_user' => $dbUser,
+                    'db_password' => $dbPassword,
                 ];
             }
 

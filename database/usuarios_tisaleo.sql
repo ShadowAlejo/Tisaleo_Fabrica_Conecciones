@@ -41,7 +41,9 @@ CREATE TABLE emprendimientos (
     nombre VARCHAR(150) NOT NULL,
     identificacion VARCHAR(40) NULL,
     representante VARCHAR(150) NULL,
-    database_key VARCHAR(40) NULL,
+    database_key VARCHAR(64) NULL,
+    usuario_bd VARCHAR(80) NULL,
+    contrasenia_bd VARCHAR(255) NULL,
     telefono VARCHAR(30) NULL,
     correo VARCHAR(254) NULL,
     direccion VARCHAR(255) NULL,
@@ -53,7 +55,8 @@ CREATE TABLE emprendimientos (
     fec_actualizacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     fec_eliminacion TIMESTAMP NULL DEFAULT NULL,
     UNIQUE KEY uq_emprendimientos_database_key (database_key),
-    INDEX idx_emprendimientos_activo (activo, fec_eliminacion)
+    INDEX idx_emprendimientos_activo (activo, fec_eliminacion),
+    INDEX idx_emprendimientos_conexion (database_key, activo, fec_eliminacion)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
