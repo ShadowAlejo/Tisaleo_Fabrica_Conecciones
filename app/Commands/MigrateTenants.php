@@ -68,6 +68,17 @@ class MigrateTenants extends BaseCommand
                     ]);
                 }
 
+                if (! in_array('categoria_unidad', $database->getFieldNames('productos'), true)) {
+                    $forge->addColumn('productos', [
+                        'categoria_unidad' => [
+                            'type' => 'VARCHAR',
+                            'constraint' => 100,
+                            'null' => true,
+                            'after' => 'unidad_medida',
+                        ],
+                    ]);
+                }
+
                 if (! in_array('categoria', $database->getFieldNames('servicios'), true)) {
                     $forge->addColumn('servicios', [
                         'categoria' => [

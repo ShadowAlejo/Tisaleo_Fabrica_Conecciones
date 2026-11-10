@@ -45,7 +45,6 @@ class ProductosController extends BaseController
             [
                 'productos' => $query
                     ->select('productos.*')
-                    ->select("(SELECT url FROM imagenes WHERE imagenes.producto_id = productos.id AND imagenes.fec_eliminacion IS NULL ORDER BY imagenes.orden, imagenes.id LIMIT 1) AS imagen_url", false, true)
                     ->orderBy('nombre')->get()->getResultArray(),
                 'categorias' => $database->table('productos')
                     ->select('categoria_unidad')
@@ -95,7 +94,6 @@ class ProductosController extends BaseController
             if ($data['cantidad'] > 0) {
                 $database->table('movimientos_inventario')->insert([
                     'producto_id' => $productId,
-                    'usuario_id' => (int) session('auth_user')['id'],
                     'tipo' => 'entrada',
                     'cantidad' => $data['cantidad'],
                     'motivo' => 'Inventario inicial',
@@ -167,7 +165,6 @@ class ProductosController extends BaseController
             if (abs($difference) > 0.0001) {
                 $database->table('movimientos_inventario')->insert([
                     'producto_id' => $id,
-                    'usuario_id' => (int) session('auth_user')['id'],
                     'tipo' => $difference > 0 ? 'ajuste_entrada' : 'ajuste_salida',
                     'cantidad' => abs($difference),
                     'motivo' => 'Ajuste desde edición del producto',
@@ -261,7 +258,7 @@ class ProductosController extends BaseController
             'codigo' => trim((string) $this->request->getPost('codigo')) ?: null,
             'categoria_unidad' => trim((string) $this->request->getPost('categoria')),
             'unidad_medida' => 'unidad',
-            'precio' => number_format((float) $input['precio'], 2, '.', ''),
+            'precio_venta' => number_format((float) $input['precio'], 2, '.', ''),
             'cantidad' => number_format((float) $input['stock'], 2, '.', ''),
             'stock_minimo' => number_format((float) $input['stock_minimo'], 2, '.', ''),
             'descripcion' => trim((string) $this->request->getPost('descripcion')) ?: null,
