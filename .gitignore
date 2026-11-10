@@ -1,4 +1,5 @@
 .env
+app/Database/Seeds/TenantConexionesSeeder.php
 /writable/logs/*
 /writable/session/*
 /writable/debugbar/*
