@@ -5,7 +5,7 @@ $navigation = match ($role) {
         ['label' => 'Emprendimientos', 'url' => 'admin/emprendimientos', 'key' => 'emprendimientos'],
     ],
     'empleado' => [
-        ['label' => 'Resumen', 'url' => 'emprendedor', 'key' => 'resumen'],
+        ['label' => 'Resumen', 'url' => 'empleado', 'key' => 'resumen'],
     ],
     default => [
         ['label' => 'Resumen', 'url' => 'emprendedor', 'key' => 'resumen'],

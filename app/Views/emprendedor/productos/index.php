@@ -25,8 +25,8 @@
         <tr>
             <td>
                 <div class="d-flex align-items-center gap-2">
-                    <?php if (! empty($producto['url_imagen'])): ?>
-                        <img src="<?= base_url($producto['url_imagen']) ?>" alt="<?= esc('Imagen de ' . $producto['nombre']) ?>" width="56" height="56" loading="lazy" style="object-fit: cover; border-radius: .375rem">
+                    <?php if (! empty($producto['imagen_url'])): ?>
+                        <img src="<?= base_url($producto['imagen_url']) ?>" alt="<?= esc('Imagen de ' . $producto['nombre']) ?>" width="56" height="56" loading="lazy" style="object-fit: cover; border-radius: .375rem">
                     <?php else: ?>
                         <div class="bg-light border rounded d-flex align-items-center justify-content-center text-secondary" style="width: 56px; height: 56px" aria-hidden="true">—</div>
                     <?php endif ?>
@@ -34,7 +34,7 @@
                 </div>
             </td>
             <td><?= esc($producto['categoria_unidad']) ?></td>
-            <td>$<?= number_format((float) $producto['precio_venta'], 2, ',', '.') ?></td>
+            <td>$<?= number_format((float) $producto['precio'], 2, ',', '.') ?></td>
             <td><?= number_format((float) $producto['cantidad'], 2, ',', '.') ?></td>
             <td><?= number_format((float) $producto['stock_minimo'], 2, ',', '.') ?></td>
             <td><?= (float) $producto['cantidad'] <= (float) $producto['stock_minimo'] ? '<span class="badge text-bg-warning">Stock bajo</span>' : '<span class="badge text-bg-success">Disponible</span>' ?></td>

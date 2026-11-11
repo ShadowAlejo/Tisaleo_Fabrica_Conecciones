@@ -12,7 +12,7 @@
     <?php else: foreach ($emprendimientos as $negocio): ?>
         <tr>
             <td><strong><?= esc($negocio['nombre']) ?></strong></td>
-            <td><?= esc($negocio['propietario'] ? (trim(($negocio['propietario']['nombre'] ?? '') . ' ' . ($negocio['propietario']['apellido'] ?? '')) ?: $negocio['propietario']['usuario']) : 'Sin propietario') ?><div class="small text-body-secondary"><?= esc($negocio['propietario']['correo'] ?? $negocio['propietario']['usuario'] ?? '') ?></div></td>
+            <td><?= esc($negocio['propietario'] ? trim($negocio['propietario']['nombre'] . ' ' . $negocio['propietario']['apellido']) : 'Sin propietario') ?><div class="small text-body-secondary"><?= esc($negocio['propietario']['correo'] ?? '') ?></div></td>
             <td><?= esc($negocio['categoria'] ?? '—') ?></td><td><?= esc($negocio['database_key'] ?? '—') ?></td>
             <td><?= (int) $negocio['activo'] === 1 ? '<span class="badge text-bg-success">Activo</span>' : '<span class="badge text-bg-secondary">Inactivo</span>' ?></td>
             <td><a class="btn btn-sm btn-outline-primary" href="<?= site_url('admin/emprendimientos/edit/' . (int) $negocio['id']) ?>">Editar</a></td>

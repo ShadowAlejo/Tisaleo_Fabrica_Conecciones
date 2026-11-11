@@ -17,7 +17,7 @@
         <div class="login-heading">
             <div class="eyebrow">Acceso al sistema</div>
             <h1>Bienvenido</h1>
-            <p>Ingresa con tu correo y contraseña para administrar tu emprendimiento.</p>
+            <p>Ingresa con tu usuario o correo y contraseña para administrar tus emprendimientos.</p>
         </div>
         <?php if (! empty($error)): ?>
             <div class="alert alert-danger" role="alert"><?= esc($error) ?></div>
@@ -25,12 +25,12 @@
         <form method="post" action="<?= site_url('login') ?>">
             <?= csrf_field() ?>
             <div class="mb-3">
-                <label for="identificador" class="form-label">Correo electrónico</label>
-                <input type="email" class="form-control" id="identificador" name="identificador" placeholder="nombre@ejemplo.com" data-example="nombre@ejemplo.com" maxlength="254" autocomplete="username" required>
+                <label for="identifier" class="form-label">Usuario o correo electrónico</label>
+                <input type="text" class="form-control" id="identifier" name="identifier" placeholder="Tu usuario o correo" data-example="Tu usuario o correo" maxlength="254" autocomplete="username" required>
             </div>
             <div class="mb-4">
                 <label for="password" class="form-label">Contraseña</label>
-                <input type="password" class="form-control" id="password" name="password" placeholder="Ejemplo8!" data-example="Ejemplo8!" maxlength="72" autocomplete="current-password" required>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Tu contraseña" data-example="Tu contraseña" maxlength="72" autocomplete="current-password" required>
             </div>
             <button type="submit" class="btn btn-success w-100 py-2">Iniciar sesión</button>
         </form>
